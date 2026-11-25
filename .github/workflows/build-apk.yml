@@ -1,0 +1,50 @@
+
+name: Gerar APK FFH4x VIP
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Baixar projeto
+        uses: actions/checkout@v4
+
+      - name: Configurar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configurar Android
+        uses: android-actions/setup-android@v3
+
+      - name: Extrair projeto
+        run: |
+          mkdir -p projeto
+          unzip -o FFH4xVIP-projeto-Android.zip -d projeto
+
+      - name: Encontrar Gradle
+        run: |
+          GRADLE=$(find projeto -name gradlew -type f | head -n 1)
+          if [ -z "$GRADLE" ]; then
+            echo "Arquivo gradlew não encontrado"
+            find projeto -maxdepth 4 -type f | head -100
+            exit 1
+          fi
+          echo "GRADLE_DIR=$(dirname "$GRADLE")" >> $GITHUB_ENV
+
+      - name: Compilar APK
+        run: |
+          chmod +x "$GRADLE_DIR/gradlew"
+          "$GRADLE_DIR/gradlew" -p "$GRADLE_DIR" assembleDebug
+
+      - name: Salvar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: FFH4xVIP-APK
+          path: projeto/**/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          
